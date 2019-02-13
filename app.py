@@ -29,7 +29,6 @@ cpu_gauge_system = Gauge(
 @app.route('/data', methods=['GET'])
 def get_data():
     """Returns all data."""
-    # data = subprocess.call("./metrics.sh", shell=True)
     data = subprocess.check_output("./metrics.sh")
     data = str(data, 'utf-8')
     data_list = data.splitlines()
