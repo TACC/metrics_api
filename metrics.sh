@@ -1,0 +1,4 @@
+#!/bin/bash
+# This is just an example of what the script will produce
+echo "385527808;12693;1632;jupyter-jlooney;20190213-125436;5f6dee89ec03dd1551587ba38dd6f609d13d182f55be7c63c0f6206ea482a22a"
+echo "666447872;40615;2624;jupyter-sharifim;20190213-125436;0e5314e10c717742f1274d5b34a7b401f8bb2f54ab73b11bb792faa421005463"

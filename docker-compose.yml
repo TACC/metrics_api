@@ -1,0 +1,6 @@
+api:
+    build: .
+    # image: test
+    ports:
+        - "5000:5000"
+
