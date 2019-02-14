@@ -39,8 +39,8 @@ def get_data():
         user_cpu = attributes[1]
         system_cpu = attributes[2]
         username = attributes[3]
-        timestamp = attributes[4]
-        container = attributes[5]
+        # timestamp = attributes[4]
+        # container = attributes[5]
         memory_gauge.labels(username).set(memory)
         cpu_gauge_user.labels(username).set(user_cpu)
         cpu_gauge_system.labels(username).set(system_cpu)
