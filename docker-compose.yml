@@ -1,8 +1,13 @@
 version: "2"
 services:
   api:
-    image: metrics_api
+    image: taccsciapps/jhub-metrics-api
     ports:
         - "5000:5000"
     volumes:
       - ./data.txt:/data.txt
+      - /sys/fs/cgroup/cpu/docker:/docker/cpu
+      - /sys/fs/cgroup/memory/docker:/docker/memory
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_API_VERSION=1.23

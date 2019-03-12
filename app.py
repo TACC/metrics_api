@@ -3,6 +3,7 @@ import io
 from flask import Flask, send_file, request, Response
 from prometheus_client import start_http_server, Counter, generate_latest, Gauge
 import subprocess
+import docker
 
 app = Flask(__name__)
 
@@ -26,25 +27,26 @@ cpu_gauge_system = Gauge(
     ['username']
 )
 
+client = docker.from_env(version='1.23')
+
+
 @app.route('/data', methods=['GET'])
 def get_data():
     """Returns all data."""
-    data = subprocess.check_output("./metrics.sh")
-    data = str(data, 'utf-8')
-    data_list = data.splitlines()
-    for item in data_list:
-        print("type is {}".format(type(item)))
-        attributes = str(item).split(';')
-        memory = int(attributes[0])/MBFACTOR
-        user_cpu = attributes[1]
-        system_cpu = attributes[2]
-        username = attributes[3]
-        # timestamp = attributes[4]
-        # container = attributes[5]
-        memory_gauge.labels(username).set(memory)
-        cpu_gauge_user.labels(username).set(user_cpu)
-        cpu_gauge_system.labels(username).set(system_cpu)
-
+    containers = client.containers.list(filters={'name':'jupyter-'})
+    for container in containers:
+        username = container.name
+        with open('/docker/memory/{}/memory.usage_in_bytes'.format(container.id), 'r') as memfile:
+            memory = memfile.read()
+            memory = int(memory) / MBFACTOR
+            memory_gauge.labels(username).set(memory)
+        with open('/docker/cpu/{}/cpuacct.stat'.format(container.id), 'r') as cpufile:
+            user_cpu_line = cpufile.readline().split()
+            user_cpu = user_cpu_line[1]
+            cpu_gauge_user.labels(username).set(str(user_cpu))
+            system_cpu_line = cpufile.readline().split()
+            system_cpu = system_cpu_line[1]
+            cpu_gauge_system.labels(username).set(str(system_cpu))
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 
