@@ -9,5 +9,7 @@ services:
       - /sys/fs/cgroup/cpu/docker:/docker/cpu
       - /sys/fs/cgroup/memory/docker:/docker/memory
       - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/meminfo:/worker/
+
     environment:
       - DOCKER_API_VERSION=1.23

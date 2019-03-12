@@ -26,6 +26,10 @@ cpu_gauge_system = Gauge(
     'Amount of time this user has used the system CPU in jiffies.',
     ['username']
 )
+worker_mem_free = Gauge(
+    'mem_free_for_this_worker',
+    'Amount of memory free for this worker in GB',
+)
 
 client = docker.from_env(version='1.23')
 
@@ -47,6 +51,14 @@ def get_data():
             system_cpu_line = cpufile.readline().split()
             system_cpu = system_cpu_line[1]
             cpu_gauge_system.labels(username).set(str(system_cpu))
+
+    with open('/worker/meminfo') as workerfile:
+        total_mem_line = workerfile.readline().split()
+        total_mem = total_mem_line[1]
+        free_mem_line = workerfile.readline().split()
+        free_mem = int(free_mem_line[1]) / MBFACTOR
+        worker_mem_free.set(free_mem)
+
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 
