@@ -1,3 +1,4 @@
+
 from flask import Flask, send_file, request, Response
 from prometheus_client import start_http_server, Counter, generate_latest, Gauge
 import docker
@@ -38,14 +39,20 @@ users_per_worker = Gauge(
 
 client = docker.from_env(version='1.23')
 
+current_users = []
+previous_users = []
 
 @app.route('/data', methods=['GET'])
 def get_data():
-    """Returns all data."""
+    """Returns all data as plaintext."""
+    current_users = []
     containers = client.containers.list(filters={'name':'jupyter-'})
     users_per_worker.set(len(containers))
     for container in containers:
         username = container.name
+        current_users.append(username)
+
+        # Get memory data for this user
         try:
             with open('/docker/memory/{}/memory.usage_in_bytes'.format(container.id), 'r') as memfile:
                 memory = memfile.read()
@@ -54,6 +61,7 @@ def get_data():
         except Exception as e:
             logger.error("Failed to update memory metric. Exception: {}".format(e))
 
+        # Get CPU data for this user
         try:
             with open('/docker/cpu/{}/cpuacct.stat'.format(container.id), 'r') as cpufile:
                 user_cpu_line = cpufile.readline().split()
@@ -64,15 +72,26 @@ def get_data():
                 cpu_gauge_system.labels(username).set(str(system_cpu))
         except Exception as e:
             logger.error("failed to update CPU metrics. Exception: {}".format(e))
+    # Get memory data for this worker
     try:
         with open('/worker/meminfo') as workerfile:
             total_mem_line = workerfile.readline().split()
             total_mem = total_mem_line[1]
             free_mem_line = workerfile.readline().split()
             free_mem = int(free_mem_line[1]) / MBFACTOR
-            worker_mem_free.set(free_mem)
+            available_mem_line = workerfile.readline().split()
+            available_mem = int(available_mem_line[1]) / MBFACTOR
+            worker_mem_free.set(available_mem)
     except Exception as e:
         logger.error("Failed to update worker metrics. Exception: {}".format(e))
+
+    # Check if a user shutdown their notebook
+    global previous_users
+    shutdown_users = list(set(previous_users) - set(current_users))
+    for user in shutdown_users:
+        memory_gauge.labels(user).set(0)
+
+    previous_users = current_users
 
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
